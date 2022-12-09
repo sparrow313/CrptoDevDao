@@ -34,15 +34,30 @@ export default function Home() {
   const getDaoOwner = async () => {
     try {
       const signer = await getProviderOrSigner(true);
-      const daoContract = getCryptodevsNFTContractInstance(signer);
-      const _owner = daoContract.owner();
+      const daoContract = getDaoContractInstance(signer);
+      const _owner = await daoContract.owner();
 
-      const address = signer.getAddress();
+      const address = await signer.getAddress();
       if (_owner.toLowerCase() === address.toLowerCase()) {
         setIsOwner(true);
       }
     } catch (error) {
       console.error(error);
+    }
+  };
+  const withdrawDAOEther = async () => {
+    try {
+      const signer = await getProviderOrSigner(true);
+      const contract = getDaoContractInstance(signer);
+
+      const tx = await contract.withdrawEther();
+      setLoading(true);
+      await tx.wait();
+      setLoading(false);
+      getDAOTreasuryBalance();
+    } catch (err) {
+      console.error(err);
+      window.alert(err.reason);
     }
   };
 
@@ -65,7 +80,7 @@ export default function Home() {
       const daoNumProposals = await daoContract.numProposals();
       setNumProposals(daoNumProposals.toString());
     } catch (error) {
-      console.log(error);
+      console.error(error);
     }
   };
 
@@ -73,7 +88,7 @@ export default function Home() {
     try {
       const signer = await getProviderOrSigner(true);
       const nftContract = getCryptodevsNFTContractInstance(signer);
-      const balance = await nftContract.getBalance(signer.getAddress());
+      const balance = await nftContract.balanceOf(signer.getAddress());
       setNftBalance(parseInt(balance.toString()));
     } catch (error) {
       console.error(error);
@@ -90,7 +105,7 @@ export default function Home() {
       await getNumProposalInDao();
       setLoading(false);
     } catch (error) {
-      console.log(error);
+      console.error(error);
       window.alert(error.data.message);
     }
   };
@@ -103,14 +118,14 @@ export default function Home() {
       const parsedProposal = {
         proposalId: id,
         nftTokenId: proposal.nftTokenId.toString(),
-        deadline: new Date(parseInt(proposal.deadline.toString() * 1000)),
+        deadline: new Date(parseInt(proposal.deadline.toString()) * 1000),
         yayVotes: proposal.yayVotes.toString(),
         nayVotes: proposal.nayVotes.toString(),
         executed: proposal.executed,
       };
       return parsedProposal;
     } catch (error) {
-      console.log(error);
+      console.error(error);
     }
   };
 
@@ -119,7 +134,7 @@ export default function Home() {
       const proposals = [];
       for (let i = 0; i < numProposals; i++) {
         const proposal = await fetchProposalById(i);
-        proposal.push(proposal);
+        proposals.push(proposal);
       }
       setProposal(proposal);
       return proposals;
@@ -139,8 +154,8 @@ export default function Home() {
       setLoading(false);
       await fetchAllProposals();
     } catch (error) {
-      console.log(error);
-      window.alert(error.message.data);
+      console.error(error);
+      window.alert(error.data.message);
     }
   };
 
@@ -156,8 +171,8 @@ export default function Home() {
       await fetchAllProposals();
       await getDaoTreasuryBalance();
     } catch (error) {
-      console.log(error);
-      window.alert(error.message.data);
+      console.error(error);
+      window.alert(error.data.message);
     }
   };
 
@@ -170,11 +185,11 @@ export default function Home() {
   };
 
   const getCryptodevsNFTContractInstance = (providerOrSigner) => {
-    return new Contract({
+    return new Contract(
       CRYPTODEVS_NFT_CONTRACT_ADDRESS,
       CRYPTODEVS_NFT_ABI,
-      providerOrSigner,
-    });
+      providerOrSigner
+    );
   };
   const getProviderOrSigner = async (needSigner = false) => {
     const provider = await web3ModalRef.current.connect();
@@ -219,10 +234,10 @@ export default function Home() {
   const renderTabs = () => {
     if (selectedTab === "Create Proposals") {
       return renderCreateProposalTab();
-    } else {
-      selectedTab === "View Proposals";
+    } else if (selectedTab === "View Proposals") {
       return renderViewProposalsTab();
     }
+    return null;
   };
 
   function renderCreateProposalTab() {
