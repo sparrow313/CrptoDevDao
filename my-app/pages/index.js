@@ -136,7 +136,7 @@ export default function Home() {
         const proposal = await fetchProposalById(i);
         proposals.push(proposal);
       }
-      setProposal(proposal);
+      setProposal(proposals);
       return proposals;
     } catch (error) {
       console.error(error);
